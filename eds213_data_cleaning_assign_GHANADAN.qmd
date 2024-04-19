@@ -151,6 +151,16 @@ cover_df <- cover_df %>%
 ```
 
 ```{r}
+# check values other than 100 in Total_cover
+cover_df %>% 
+  count(Total_cover) %>% 
+  filter(
+    (is.na(Snow_cover)) | (is.na(Water_cover)) | (is.na(Land_cover))
+    )
+```
+
+
+```{r}
 # check if any instance where more than one of value across snow, water, and land cover is NA
 cover_df %>% 
   filter((is.na(Snow_cover)) & (is.na(Water_cover)))
@@ -179,31 +189,20 @@ cover_df <- cover_df %>%
   ungroup()
 ```
 
-
-
 ```{r}
-# check values other than 100 in Total_cover
+# check for NA values
 cover_df %>% 
-  filter(Total_cover != 100)
+  count(Total_cover) %>% 
+  filter(
+    (is.na(Snow_cover)) | (is.na(Water_cover)) | (is.na(Land_cover))
+    )
 ```
 
-Because we know there are no negative values in our cleaned snow, water, and land cover columns, we will just delete all observations where total cover is zero, as these observations are useless. 
-
-When total cover is greater than 100, I'd assume that this is because of a typo. Since it's difficult to go through and figure out what the exact typo was, we will just delete these observations as well.
+## Generate output CSV
 
 ```{r}
-# remove observations where total cover is zero
-cover_df <- cover_df %>% 
-  filter((Total_cover != 0) | (Total_cover < 100))
+# write CSV
+write_csv(cover_df, file.path(datadir_processed, "all_cover_fixed_GHANADAN.csv"))
 ```
-
-For the remaining entries, we will attempt to replace any NAs with the appropriate number when this is the case.
-
-```{r}
-cover_df %>% 
-  filter((Total_cover != 100) & (is.na(Water_cover)))
-
-```
-
 
 
