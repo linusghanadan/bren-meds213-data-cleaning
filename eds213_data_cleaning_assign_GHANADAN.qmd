@@ -44,8 +44,8 @@ cover_df <- cover_df %>%
 ```{r}
 # look at what is going on in df when "." is entered
 cover_df %>% 
-  filter(Water_cover == ".") %>% 
-  View()
+  filter(Water_cover == ".")
+  #View()
 ```
 
 When "." is entered water cover, it is also the case for all the other covers, so we will just replace these with NA (since there is no supplemental information in the provided metadata).
@@ -59,8 +59,8 @@ cover_df <- cover_df %>%
 ```{r}
 # look at what is going on in df when "." is entered
 cover_df %>% 
-  filter(Water_cover == "-") %>% 
-  View()
+  filter(Water_cover == "-")
+  #View()
 ```
 
 The same thing is going on for "-", so we will replace this with NA as well.
@@ -81,7 +81,7 @@ cover_df %>%
 ```{r}
 # transform column data type to numeric
 cover_df <- cover_df %>% 
-  mutate(Water_cover = as.numeric(Water_cover))
+  mutate(Water_cover = as.numeric(as.character(Water_cover))) # need to specify that original column is character for R to preserve NAs
 
 glimpse(cover_df)
 ```
@@ -93,9 +93,9 @@ cover_df %>%
 ```
 
 ```{r}
-# set Water_cover values for this observation to NA
+# delete this observation (b/c no intuitive explanation for what is going on)
 cover_df <- cover_df %>% 
-  mutate(Water_cover = ifelse(Water_cover > 100, NA, Water_cover))
+  filter(Water_cover <= 100)
 ```
 
 ## Clean 'Land_cover' column
@@ -109,10 +109,8 @@ cover_df %>%
   filter(is.na(as.numeric(Land_cover)))
 ```
 
-These are the same symbols we saw previously, so we will just go ahead and convert all four of these character strings to NA like we did with Water_cover.
-
 ```{r}
-# replace '-', '.', 'n/a', and 'unk' values with NA
+# replace '.' with NA
 cover_df <- cover_df %>% 
   mutate(Land_cover = ifelse(Land_cover %in% c("-", ".", "n/a", "unk"), NA, Land_cover))
 ```
@@ -127,7 +125,7 @@ cover_df %>%
 ```{r}
 # transform column data type to numeric
 cover_df <- cover_df %>% 
-  mutate(Land_cover = as.numeric(Land_cover))
+  mutate(Land_cover = as.numeric(as.character(Land_cover))) # need to specify that original column is character for R to preserve NAs
 
 glimpse(cover_df)
 ```
@@ -139,14 +137,12 @@ cover_df %>%
 ```
 
 ```{r}
-# set Water_cover values for these observation to NA
+# for observation with -100, set equal to 100
 cover_df <- cover_df %>% 
-  mutate(Land_cover = ifelse(Land_cover < 0, NA, Land_cover))
+  mutate(Land_cover = ifelse(Land_cover == -100, 100, Land_cover))
 ```
 
 ## Recompute 'Total_cover' column and infer missing values
-
-The 'Total_cover' column is the 
 
 ```{r}
 # recompute column by adding snow, water, and land cover percentages
@@ -155,7 +151,59 @@ cover_df <- cover_df %>%
 ```
 
 ```{r}
+# check if any instance where more than one of value across snow, water, and land cover is NA
+cover_df %>% 
+  filter((is.na(Snow_cover)) & (is.na(Water_cover)))
+cover_df %>% 
+  filter((is.na(Land_cover)) & (is.na(Water_cover)))
+cover_df %>% 
+  filter((is.na(Land_cover)) & (is.na(Snow_cover)))
+```
+
+```{r}
+# in this observation, convert land cover to 0
+cover_df <- cover_df %>% 
+  mutate(Land_cover = ifelse((is.na(Land_cover)) & (is.na(Snow_cover)), 0, Land_cover))
+```
+
+```{r}
+# for all other NAs in these three columns, fill assuming the sum should be 100
+cover_df <- cover_df %>%
+  rowwise() %>%
+  mutate(
+    Snow_cover = if_else((is.na(Snow_cover)) & (is.na(Total_cover)), 100 - (Water_cover + Land_cover), Snow_cover),
+    Water_cover = if_else((is.na(Water_cover)) & (is.na(Total_cover)), 100 - (Snow_cover + Land_cover), Water_cover),
+    Land_cover = if_else((is.na(Land_cover)) & (is.na(Total_cover)), 100 - (Snow_cover + Water_cover), Land_cover),
+    Total_cover = Snow_cover + Water_cover + Land_cover
+  ) %>%
+  ungroup()
+```
+
+
+
+```{r}
+# check values other than 100 in Total_cover
+cover_df %>% 
+  filter(Total_cover != 100)
+```
+
+Because we know there are no negative values in our cleaned snow, water, and land cover columns, we will just delete all observations where total cover is zero, as these observations are useless. 
+
+When total cover is greater than 100, I'd assume that this is because of a typo. Since it's difficult to go through and figure out what the exact typo was, we will just delete these observations as well.
+
+```{r}
+# remove observations where total cover is zero
+cover_df <- cover_df %>% 
+  filter((Total_cover != 0) | (Total_cover < 100))
+```
+
+For the remaining entries, we will attempt to replace any NAs with the appropriate number when this is the case.
+
+```{r}
+cover_df %>% 
+  filter((Total_cover != 100) & (is.na(Water_cover)))
 
 ```
+
 
 
