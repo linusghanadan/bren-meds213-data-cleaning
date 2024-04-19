@@ -1,0 +1,161 @@
+---
+title: "eds213_data_cleaning_assign_GHANADAN"
+format: html
+editor: visual
+---
+
+## Setup & data import
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+```{r}
+# load libraries
+library(tidyverse)
+```
+
+```{r}
+# import data
+datadir_processed <- "data/processed/"
+data_file <- "snow_cover.csv"
+cover_df <- read_csv(file.path(datadir_processed, data_file))
+
+glimpse(cover_df)
+```
+
+## Clean 'Water_cover' column
+
+Currently the data type in this column is character, but we want it to be numeric.
+
+```{r}
+# inspect values that are NA if values are converted to numeric
+cover_df %>% 
+  count(Water_cover) %>% 
+  filter(is.na(as.numeric(Water_cover)))
+```
+
+```{r}
+# replace 'n/a' and 'unk' values with NA
+cover_df <- cover_df %>% 
+  mutate(Water_cover = ifelse(Water_cover %in% c("n/a", "unk"), NA, Water_cover))
+```
+
+```{r}
+# look at what is going on in df when "." is entered
+cover_df %>% 
+  filter(Water_cover == ".") %>% 
+  View()
+```
+
+When "." is entered water cover, it is also the case for all the other covers, so we will just replace these with NA (since there is no supplemental information in the provided metadata).
+
+```{r}
+# replace "." values in Water_cover with NAs
+cover_df <- cover_df %>% 
+  mutate(Water_cover = ifelse(Water_cover == ".", NA, Water_cover))
+```
+
+```{r}
+# look at what is going on in df when "." is entered
+cover_df %>% 
+  filter(Water_cover == "-") %>% 
+  View()
+```
+
+The same thing is going on for "-", so we will replace this with NA as well.
+
+```{r}
+# replace "-" values in Water_cover with NAs
+cover_df <- cover_df %>% 
+  mutate(Water_cover = ifelse(Water_cover == "-", NA, Water_cover))
+```
+
+```{r}
+# ensure everything was fixed correctly and column is ready to be transformed to numeric data type
+cover_df %>% 
+  count(Water_cover) %>% 
+  filter(is.na(as.numeric(Water_cover)))
+```
+
+```{r}
+# transform column data type to numeric
+cover_df <- cover_df %>% 
+  mutate(Water_cover = as.numeric(Water_cover))
+
+glimpse(cover_df)
+```
+
+```{r}
+# check if all values are between 0 and 100
+cover_df %>% 
+  filter((Water_cover > 100) | (Water_cover < 0))
+```
+
+```{r}
+# set Water_cover values for this observation to NA
+cover_df <- cover_df %>% 
+  mutate(Water_cover = ifelse(Water_cover > 100, NA, Water_cover))
+```
+
+## Clean 'Land_cover' column
+
+As with the Water_cover column, the data type in this column should be numeric, but with no processing, it is being read as character.
+
+```{r}
+# inspect values that are NA if values are converted to numeric
+cover_df %>% 
+  count(Land_cover) %>% 
+  filter(is.na(as.numeric(Land_cover)))
+```
+
+These are the same symbols we saw previously, so we will just go ahead and convert all four of these character strings to NA like we did with Water_cover.
+
+```{r}
+# replace '-', '.', 'n/a', and 'unk' values with NA
+cover_df <- cover_df %>% 
+  mutate(Land_cover = ifelse(Land_cover %in% c("-", ".", "n/a", "unk"), NA, Land_cover))
+```
+
+```{r}
+# ensure everything was fixed correctly and column is ready to be transformed to numeric data type
+cover_df %>% 
+  count(Land_cover) %>% 
+  filter(is.na(as.numeric(Land_cover)))
+```
+
+```{r}
+# transform column data type to numeric
+cover_df <- cover_df %>% 
+  mutate(Land_cover = as.numeric(Land_cover))
+
+glimpse(cover_df)
+```
+
+```{r}
+# check if all values are between 0 and 100
+cover_df %>% 
+  filter((Land_cover > 100) | (Land_cover < 0))
+```
+
+```{r}
+# set Water_cover values for these observation to NA
+cover_df <- cover_df %>% 
+  mutate(Land_cover = ifelse(Land_cover < 0, NA, Land_cover))
+```
+
+## Recompute 'Total_cover' column and infer missing values
+
+The 'Total_cover' column is the 
+
+```{r}
+# recompute column by adding snow, water, and land cover percentages
+cover_df <- cover_df %>% 
+  mutate(Total_cover = Snow_cover + Water_cover + Land_cover)
+```
+
+```{r}
+
+```
+
+
