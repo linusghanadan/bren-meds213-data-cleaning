@@ -4,6 +4,8 @@ format: html
 editor: visual
 ---
 
+[URL to my forked repository](https://github.com/linusghanadan/bren-meds213-data-cleaning)
+
 ## Setup & data import
 
 ```{r setup, include=FALSE}
@@ -153,10 +155,10 @@ cover_df <- cover_df %>%
 ```{r}
 # check values other than 100 in Total_cover
 cover_df %>% 
-  count(Total_cover) %>% 
   filter(
     (is.na(Snow_cover)) | (is.na(Water_cover)) | (is.na(Land_cover))
-    )
+    ) %>% 
+  count(Total_cover)
 ```
 
 
@@ -179,7 +181,7 @@ cover_df <- cover_df %>%
 ```{r}
 # for all other NAs in these three columns, fill assuming the sum should be 100
 cover_df <- cover_df %>%
-  rowwise() %>%
+  rowwise() %>% # tells R to iterate row by row
   mutate(
     Snow_cover = if_else((is.na(Snow_cover)) & (is.na(Total_cover)), 100 - (Water_cover + Land_cover), Snow_cover),
     Water_cover = if_else((is.na(Water_cover)) & (is.na(Total_cover)), 100 - (Snow_cover + Land_cover), Water_cover),
@@ -192,10 +194,10 @@ cover_df <- cover_df %>%
 ```{r}
 # check for NA values
 cover_df %>% 
-  count(Total_cover) %>% 
   filter(
     (is.na(Snow_cover)) | (is.na(Water_cover)) | (is.na(Land_cover))
-    )
+    ) %>% 
+  count(Total_cover)
 ```
 
 ## Generate output CSV
